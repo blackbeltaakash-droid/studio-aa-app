@@ -1,0 +1,9 @@
+{
+  "name": "studio-aa-app",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@netlify/blobs": "^9.1.2",
+    "@netlify/functions": "^4.1.6"
+  }
+}

@@ -1,0 +1,7 @@
+[build]
+  publish = "public"
+
+[[redirects]]
+  from = "/w/*"
+  to = "/w/index.html"
+  status = 200
