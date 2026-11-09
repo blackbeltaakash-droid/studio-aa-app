@@ -1,15 +1,21 @@
 import type { Config, Context } from "@netlify/functions";
 import { getStore } from "@netlify/blobs";
+import { tokenValid, cookieFrom, type Lock } from "../lib/lock.mts";
 
 // One JSON document per workspace. GET returns it after folding any texts
 // waiting in the inbox into the live log. PUT replaces it with what the page sends.
+//
+// When the workspace has a password on its requests, a browser without it is never
+// sent the requests and cannot change them. The rest of the workspace still works.
 
 const STORE = "workspaces";
 
 type Line = { k: string; t: string; when: string; id?: string };
 type Entry = { id: string | number; col: "pending" | "approved" | "done"; page: string; text: string; orig: string; time: string; from?: string; at?: string; images?: string[]; trail?: Line[] };
 type Inbox = { kind?: "reply"; entry?: string; text: string; from: string; sid: string; at: string; media?: { key: string; type: string }[] };
-type Doc = { artist: string; logo?: string; buckets: any[]; entries: Entry[]; next: number };
+type Doc = { artist: string; logo?: string; buckets: any[]; entries: Entry[]; next: number; lock?: Lock };
+
+const REQUESTS = "log";
 
 function fresh(slug: string): Doc {
   return {
@@ -58,13 +64,26 @@ export default async (req: Request, context: Context) => {
   if (!/^[a-z0-9-]{6,64}$/i.test(slug)) return new Response("not found", { status: 404 });
   const store = getStore({ name: STORE, consistency: "strong" });
 
+  const stored = await load(slug);
+  const lock = stored.lock;
+  const hidden = !!lock && !(await tokenValid(lock, slug, cookieFrom(req, slug)));
+
   if (req.method === "GET") {
-    return Response.json(await load(slug), { headers: { "cache-control": "no-store" } });
+    const { lock: _never, ...rest } = stored;
+    const out = { ...rest, locked: !!lock, unlocked: !!lock && !hidden };
+    if (hidden) out.entries = stored.entries.filter((e) => e.page !== REQUESTS);
+    return Response.json(out, { headers: { "cache-control": "no-store" } });
   }
   if (req.method === "PUT") {
-    let doc: Doc;
-    try { doc = (await req.json()) as Doc; } catch { return new Response("bad json", { status: 400 }); }
+    let doc: Doc & { locked?: boolean; unlocked?: boolean };
+    try { doc = await req.json(); } catch { return new Response("bad json", { status: 400 }); }
     if (!doc || !Array.isArray(doc.buckets) || !Array.isArray(doc.entries)) return new Response("bad doc", { status: 400 });
+    delete doc.locked;
+    delete doc.unlocked;
+    // the password is only ever changed through /lock, never by saving the page
+    if (lock) doc.lock = lock; else delete doc.lock;
+    // a browser without the password never had the requests, so it cannot overwrite them
+    if (hidden) doc.entries = [...stored.entries.filter((e) => e.page === REQUESTS), ...doc.entries.filter((e) => e.page !== REQUESTS)];
     await store.setJSON(`ws/${slug}`, doc);
     return Response.json({ ok: true });
   }

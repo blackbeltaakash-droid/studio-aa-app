@@ -138,6 +138,16 @@
   .head .del{padding:2px 0 0}
   @media (max-width:600px){ .board{padding:20px 18px 28px;min-height:0} }
 
+  /* the password on the requests */
+  .lockpad{max-width:340px;margin:2px 0 0}
+  .lockpad .say{font-weight:800;font-size:15px;letter-spacing:-.02em}
+  .lockpad .line{display:flex;gap:14px;align-items:baseline;margin-top:10px}
+  .lockpad input{flex:1;min-width:0;font:inherit;font-size:14px;color:var(--fg);background:none;border:0;border-bottom:1px solid var(--hair);border-radius:0;padding:3px 0}
+  .lockpad input:focus{outline:none;border-bottom-color:var(--fg)}
+  .lockpad input::placeholder{color:var(--mute)}
+  .lockpad button{font-size:14px;color:var(--mute)}
+  .lockpad button:hover{color:var(--fg);text-decoration:underline;text-underline-offset:3px}
+  .lockpad .why{font-size:13px;color:var(--mute);margin-top:8px;min-height:1.3em;overflow-wrap:anywhere}
   .cols{display:flex;flex-direction:column;gap:18px;max-width:640px}
   /* the columns belong to the live log only; display:flex above would otherwise override the hidden attribute on every other sub-page */
   .cols[hidden]{display:none}
@@ -250,6 +260,14 @@
   <div class="stack" id="stack" hidden></div>
   <div class="bgimg" id="bgImg"></div><div class="frost"></div>
   <input type="file" id="imgFile" accept="image/*" hidden>
+  <div class="lockpad" id="lockPad" hidden>
+    <div class="say" id="lockSay">these requests are locked</div>
+    <form class="line" id="lockForm">
+      <input type="password" id="lockPw" placeholder="password" autocomplete="current-password" spellcheck="false">
+      <button type="submit" id="lockGo">open</button>
+    </form>
+    <div class="why" id="lockWhy"></div>
+  </div>
   <div class="cols" id="cols">
     <div class="col">
       <div class="label">pending</div>
@@ -375,6 +393,44 @@
     });
   }
 
+  /* the password on the requests. the page holds whether they are open, never the password itself */
+  var HASAPI=(typeof API!=='undefined');
+  var lockPad=document.getElementById('lockPad'), lockSay=document.getElementById('lockSay'), lockPw=document.getElementById('lockPw'),
+      lockGo=document.getElementById('lockGo'), lockWhy=document.getElementById('lockWhy'), lockForm=document.getElementById('lockForm'), lockMode='open';
+  function requestsOpen(){ return !state.locked || !!state.unlocked; }
+  function paintRequests(){
+    var onLog=(curView==='page' && current==='log');
+    if(!onLog) lockMode='open';
+    var ask=onLog && (!requestsOpen() || lockMode==='set');
+    lockPad.hidden=!ask; cols.hidden=!onLog || ask;
+    if(!ask) return;
+    lockSay.textContent=lockMode==='set'?'set a password for these requests':'these requests are locked';
+    lockGo.textContent=lockMode==='set'?'set':'open';
+    lockPw.setAttribute('autocomplete',lockMode==='set'?'new-password':'current-password');
+    lockPw.value=''; lockWhy.textContent='';
+    setTimeout(function(){ lockPw.focus(); },0);
+  }
+  /* read the workspace again, which is what tells us whether the requests are open now */
+  function reload(){
+    return fetch(API,{cache:'no-store'}).then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); }).then(function(doc){
+      state=doc; window.__state=doc; tidy(); renderLog(); paintRequests(); buildMenu(curView);
+    });
+  }
+  lockForm.addEventListener('submit',function(ev){
+    ev.preventDefault();
+    var pw=lockPw.value.trim(); if(!pw) return;
+    if(!HASAPI){ lockWhy.textContent='the live site handles this'; return; }
+    var setting=(lockMode==='set'); lockWhy.textContent='one moment';
+    fetch(API+(setting?'/lock':'/unlock'),{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password:pw})})
+      .then(function(r){ return r.json().then(function(j){ return {ok:r.ok&&j.ok,j:j}; }); })
+      .then(function(res){ if(!res.ok){ lockWhy.textContent=res.j.error||'that did not work'; lockPw.select(); return; } lockMode='open'; return reload(); })
+      .catch(function(){ lockWhy.textContent='could not reach the site'; });
+  });
+  function removeLock(){
+    fetch(API+'/lock',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({remove:true})})
+      .then(function(r){ return r.json(); }).then(function(j){ if(j.ok){ lockMode='open'; reload(); } }).catch(function(){});
+  }
+
   /* subpage */
   function stamp(e,kind,text){ (e.trail=e.trail||[]).push({k:kind,t:text,when:now()}); }
   function sendReply(e,text,cb){ /* preview: no Twilio here, the live site sends it from your number */ setTimeout(function(){ cb(true); },150); }
@@ -472,8 +528,15 @@
          ['image',function(){ imgTarget='stack'; imgFile.click(); }],
 
          (findPage(current)&&findPage(current).bg)?['remove background',function(){ var pg=findPage(current); delete pg.bg; renderImages(); buildMenu('page'); save(); }]:['background',function(){ imgTarget='bg'; imgFile.click(); }]];
+    /* nothing can be added to the requests while they are locked */
+    if(view==='page' && current==='log' && !requestsOpen()) items=[];
+    if(HASAPI && view==='page' && current==='log' && requestsOpen()){
+      if(!state.locked) items.push(['lock these requests',function(){ lockMode='set'; paintRequests(); }]);
+      else items.push(['remove the password',removeLock]);
+    }
     items=items.filter(Boolean);
     items.forEach(function(it){ var b=document.createElement('button'); b.textContent=it[0]; b.addEventListener('click',function(){ menu.classList.remove('open'); it[1](); }); menu.appendChild(b); });
+    document.querySelector('.plus').style.display=items.length?'flex':'none';
   }
   plus.addEventListener('click',function(e){ e.stopPropagation(); if(!menu.classList.contains('open')) buildMenu(curView); menu.classList.toggle('open'); });
   document.addEventListener('click',function(){ menu.classList.remove('open'); });
@@ -592,12 +655,12 @@
     var view='home'; if(h!=='home' && findPage(h)){ view='page'; current=h; }
     document.querySelectorAll('.view').forEach(function(v){ v.classList.toggle('on',v.id===view); });
     curView=view; placeBar(); if(view==='home') renderImages();
-    buildMenu(view); menu.classList.remove('open');
+    paintRequests(); buildMenu(view); menu.classList.remove('open');
     if(view==='home') renderHome();
-    else if(current==='log'){ cols.hidden=false; docBody.hidden=true; renderLog(); renderSheet(); renderImages(); paintAlign(); paintBelow(); }
+    else if(current==='log'){ docBody.hidden=true; renderLog(); renderSheet(); renderImages(); paintAlign(); paintBelow(); }
     else {
       var pg=findPage(current); document.getElementById('pageName').textContent=pg.name;
-      cols.hidden=true; docBody.hidden=false; docBody.textContent=pg.body||'';
+      docBody.hidden=false; docBody.textContent=pg.body||'';
       renderSheet(); renderImages(); paintAlign(); paintBelow();
       setTimeout(function(){ docBody.focus(); },0);
     }
