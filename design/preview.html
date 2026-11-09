@@ -35,20 +35,20 @@
   #page.hasstack .pageboard > .doc,#page.hasstack .pageboard > .sheet,#page.hasstack .pageboard > .cols{grid-column:1;min-width:0}
   #page.hasstack .pageboard > .stack{grid-column:2;grid-row:2 / span 6}
   /* each request is a small thread: the text, then replies and notes under it */
-  .entry .trail{display:flex;flex-direction:column;gap:4px;margin-top:6px}
-  .entry .trail div{font-size:13px;color:var(--mute);display:flex;gap:10px;align-items:baseline}
+  .entry .trail{display:flex;flex-direction:column;gap:2px;margin-top:2px}
+  .entry .trail div{font-size:12px;color:var(--mute);display:flex;gap:10px;align-items:baseline}
   .entry .trail .k{flex:0 0 auto;min-width:34px;color:var(--mute)}
   .entry .trail .k.reply{color:var(--fg);font-weight:600}
   .entry .trail .t{color:var(--fg);flex:1;min-width:0;overflow-wrap:anywhere}
-  @media (hover:none){ .entry .add,.entry .tools,.row .del,.row .pinbtn,.head .del,.hero .swap,.align,.stack .del,.sheet td.addcol button{opacity:1} }
-  .entry .trail .k.state + .t{color:var(--mute)}
+  @media (hover:none){ .row .del,.row .pinbtn,.head .del,.hero .swap,.align,.stack .del,.sheet td.addcol button{opacity:1} }
   .entry .trail .when{margin-left:auto;font-variant-numeric:tabular-nums;white-space:nowrap}
-  .entry .add{display:flex;gap:10px;align-items:baseline;margin-top:6px;opacity:0;font-size:13px}
-  .entry:hover .add,.entry:focus-within .add,.entry .add:focus-within{opacity:1}
-  .entry .add .kind{color:var(--mute);min-width:34px}
+  /* the box for a note or a reply, and the tools, only take up room on the request you clicked */
+  .entry .add{display:none;gap:10px;align-items:baseline;margin-top:4px;font-size:12px}
+  .entry.on .add{display:flex}
+  .entry .add .kind{color:var(--mute);min-width:34px;text-align:left}
   .entry .add .kind:hover,.entry .add .kind.on{color:var(--fg)}
   .entry .add .kind.on{text-decoration:underline;text-underline-offset:3px}
-  .entry .add .box{flex:1;min-width:0;font-size:14px;padding:2px 0;border-bottom:1px solid var(--hair)}
+  .entry .add .box{flex:1;min-width:0;font-size:13px;padding:1px 0;border-bottom:1px solid var(--hair)}
   .entry .add .box:focus{border-bottom-color:var(--fg)}
   .entry .add .box:empty:before{content:attr(data-ph);color:var(--mute)}
   .entry .check.done{background:var(--fg);color:var(--bg)}
@@ -138,7 +138,7 @@
   .head .del{padding:2px 0 0}
   @media (max-width:600px){ .board{padding:20px 18px 28px;min-height:0} }
 
-  .cols{display:flex;flex-direction:column;gap:30px;max-width:640px}
+  .cols{display:flex;flex-direction:column;gap:18px;max-width:640px}
   /* the columns belong to the live log only; display:flex above would otherwise override the hidden attribute on every other sub-page */
   .cols[hidden]{display:none}
   .doc{max-width:640px;min-height:30vh;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
@@ -186,23 +186,25 @@
   body.hasbg .bar .right{height:22px}
   .col{min-width:0}
   .col .label{min-width:0;width:100%}
-  .log{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column}
-  .entry{display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:start;padding:8px 0;border-bottom:1px solid var(--hair)}
-  .entry .text{font-weight:400;min-width:0;overflow-wrap:anywhere;outline-offset:3px;padding:2px 0}
-  .entry .check{width:20px;height:20px;border:1.5px solid var(--fg);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;line-height:1;margin-top:2px}
+  .log{list-style:none;margin:2px 0 0;padding:0;display:flex;flex-direction:column}
+  /* a request with no thread is one line */
+  .entry{display:grid;grid-template-columns:1fr auto auto;gap:0 10px;align-items:start;padding:5px 0;border-bottom:1px solid var(--hair)}
+  .entry .text{font-weight:400;font-size:14px;min-width:0;overflow-wrap:anywhere;outline-offset:3px;padding:1px 0}
+  .entry .check{width:16px;height:16px;border:1.5px solid var(--fg);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;line-height:1;margin-top:2px;position:relative}
   .entry .check:hover{background:var(--fg);color:var(--bg)}
   .entry .check.done{background:var(--fg);color:var(--bg)}
+  @media (hover:none){ .entry .check:after{content:"";position:absolute;inset:-9px} }
   .entry .text:focus{border-bottom:1px solid var(--fg);margin-bottom:-1px}
-  .entry .orig{font-size:13px;color:var(--mute);margin-top:4px}
+  .entry .orig{font-size:12px;color:var(--mute);margin-top:2px}
   .entry .orig:empty{display:none}
-  .entry .pics{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
-  .entry .pics img{height:120px;max-width:100%;object-fit:cover;border-radius:6px;display:block}
-  .entry .time{font-size:13px;color:var(--mute);font-variant-numeric:tabular-nums;white-space:nowrap;padding-top:6px}
+  .entry .pics{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+  .entry .pics img{height:56px;max-width:100%;object-fit:cover;border-radius:4px;display:block}
+  .entry .time{font-size:12px;color:var(--mute);font-variant-numeric:tabular-nums;white-space:nowrap;padding-top:3px}
   .entry > .wrap{grid-column:1;grid-row:1 / span 2;min-width:0}
   .entry > .time{grid-column:2;grid-row:1}
   .entry > .check{grid-column:3;grid-row:1}
-  .entry .tools{grid-column:2 / -1;grid-row:2;display:flex;gap:12px;font-size:13px;color:var(--mute);justify-content:flex-end;align-self:start;opacity:0}
-  .entry:hover .tools,.entry:focus-within .tools{opacity:1}
+  .entry .tools{grid-column:2 / -1;grid-row:2;display:none;gap:12px;font-size:12px;color:var(--mute);justify-content:flex-end;align-self:end;padding-bottom:2px}
+  .entry.on .tools{display:flex}
   .entry .tools button:hover{color:var(--fg);text-decoration:underline;text-underline-offset:3px}
   .empty{color:var(--mute);font-size:14px;padding:14px 0}
 
@@ -376,6 +378,18 @@
   /* subpage */
   function stamp(e,kind,text){ (e.trail=e.trail||[]).push({k:kind,t:text,when:now()}); }
   function sendReply(e,text,cb){ /* preview: no Twilio here, the live site sends it from your number */ setTimeout(function(){ cb(true); },150); }
+  /* one click moves one request. when a request changes section the list reflows under the cursor, so another click in the same spot straight after is ignored instead of landing on whatever slid there */
+  var lastAct=null;
+  function oneClick(ev){
+    if(!ev || ev.detail===0) return true;
+    var t=Date.now();
+    if(lastAct && t-lastAct.t<600 && Math.abs(ev.clientX-lastAct.x)<12 && Math.abs(ev.clientY-lastAct.y)<12){ lastAct.t=t; return false; }
+    lastAct={x:ev.clientX,y:ev.clientY,t:t}; return true;
+  }
+  /* the request you clicked is the open one: its note and reply box and its tools show, the rest stay one line */
+  var openId=null;
+  function paintOpen(){ var all=document.querySelectorAll('#cols .entry'); for(var i=0;i<all.length;i++){ all[i].classList.toggle('on', openId!==null && all[i].dataset.id===String(openId)); } }
+  document.addEventListener('click',function(ev){ var el=ev.target; if(openId===null || !el.closest || el.closest('.entry') || el.closest('.plus')) return; openId=null; paintOpen(); });
   function renderLog(){
     var pg=findPage(current); document.getElementById('pageName').textContent=pg?pg.name:'';
     ['pending','approved','done'].forEach(function(col){
@@ -383,7 +397,10 @@
       var rows=state.entries.filter(function(e){return e.col===col && e.page===current});
       if(!rows.length) return;
       rows.forEach(function(e){
-        var li=document.createElement('li'); li.className='entry';
+        var li=document.createElement('li'); li.className='entry'+(openId!==null && String(openId)===String(e.id)?' on':''); li.dataset.id=e.id;
+        function open(){ if(String(openId)!==String(e.id)){ openId=e.id; paintOpen(); } }
+        li.addEventListener('click',function(ev){ if(ev.target.closest('.check')) return; open(); });
+        li.addEventListener('keyup',function(ev){ if(ev.key==='Tab') open(); });
         var wrap=document.createElement('div'); wrap.className='wrap';
         var t=document.createElement('div'); t.className='text'+(e.text?'':' blank'); t.contentEditable='true'; t.spellcheck=false; t.textContent=e.text; t.dataset.ph='type a note';
         t.addEventListener('input',function(){ t.classList.toggle('blank',!t.textContent.trim()); });
@@ -397,8 +414,9 @@
         var o=document.createElement('div'); o.className='orig'; o.textContent=e.orig?('sent as: '+e.orig):'';
         wrap.appendChild(t); wrap.appendChild(o);
         if(e.images&&e.images.length){ var pics=document.createElement('div'); pics.className='pics'; e.images.forEach(function(src){ var a=document.createElement('a'); a.href=src; a.target='_blank'; a.rel='noopener'; var im=document.createElement('img'); im.src=src; im.alt=''; im.loading='lazy'; a.appendChild(im); pics.appendChild(a); }); wrap.appendChild(pics); }
-        /* the trail: replies sent, notes on what was done, and state changes */
-        if(e.trail&&e.trail.length){ var tr=document.createElement('div'); tr.className='trail'; e.trail.forEach(function(x){ var d=document.createElement('div'); var k=document.createElement('span'); k.className='k '+x.k; k.textContent=x.k==='reply'?'you':x.k==='note'?'did':''; var t=document.createElement('span'); t.className='t'; t.textContent=x.t; var w=document.createElement('span'); w.className='when'; w.textContent=x.when; d.appendChild(k); d.appendChild(t); d.appendChild(w); tr.appendChild(d); }); wrap.appendChild(tr); }
+        /* the trail: replies sent and notes on what was done. moving a request between sections is not logged, and older "approved" or "done" lines are not shown */
+        var lines=(e.trail||[]).filter(function(x){ return x.k!=='state'; });
+        if(lines.length){ var tr=document.createElement('div'); tr.className='trail'; lines.forEach(function(x){ var d=document.createElement('div'); var k=document.createElement('span'); k.className='k '+x.k; k.textContent=x.k==='reply'?'you':x.k==='note'?'did':''; var t=document.createElement('span'); t.className='t'; t.textContent=x.t; var w=document.createElement('span'); w.className='when'; w.textContent=x.when; d.appendChild(k); d.appendChild(t); d.appendChild(w); tr.appendChild(d); }); wrap.appendChild(tr); }
         var add=document.createElement('div'); add.className='add'; var kind='note';
         var kn=document.createElement('button'); kn.className='kind on'; kn.textContent='did'; var kr=document.createElement('button'); kr.className='kind'; kr.textContent='reply';
         var box=document.createElement('div'); box.className='box'; box.contentEditable='true'; box.spellcheck=false; box.dataset.ph='what you did';
@@ -411,11 +429,11 @@
         add.appendChild(kn); add.appendChild(kr); add.appendChild(box); wrap.appendChild(add);
         var tm=document.createElement('div'); tm.className='time'; tm.textContent=e.time;
         var ck=document.createElement('button'); ck.className='check'+(col==='approved'?' done':col==='done'?' finished':''); ck.textContent='✓'; ck.setAttribute('aria-label',col==='pending'?'approve':col==='approved'?'mark done':'done');
-        ck.addEventListener('click',function(){ if(col==='pending'){ e.col='approved'; stamp(e,'state','approved'); } else if(col==='approved'){ e.col='done'; stamp(e,'state','done'); } else { return; } renderLog(); save(); });
+        ck.addEventListener('click',function(ev){ if(col==='done' || !oneClick(ev)) return; e.col=col==='pending'?'approved':'done'; renderLog(); save(); });
         var tools=document.createElement('div'); tools.className='tools';
-        if(col!=='pending'){ var back=document.createElement('button'); back.textContent=col==='done'?'reopen':'send back'; back.addEventListener('click',function(){ e.col=col==='done'?'approved':'pending'; stamp(e,'state',col==='done'?'reopened':'sent back'); renderLog(); save(); }); tools.appendChild(back); }
+        if(col!=='pending'){ var back=document.createElement('button'); back.textContent=col==='done'?'reopen':'send back'; back.addEventListener('click',function(ev){ if(!oneClick(ev)) return; e.col=col==='done'?'approved':'pending'; renderLog(); save(); }); tools.appendChild(back); }
         var del=document.createElement('button'); del.textContent='×'; del.setAttribute('aria-label','remove');
-        del.addEventListener('click',function(){ state.entries=state.entries.filter(function(x){return x.id!==e.id}); renderLog(); save(); });
+        del.addEventListener('click',function(ev){ if(!oneClick(ev)) return; state.entries=state.entries.filter(function(x){return x.id!==e.id}); if(String(openId)===String(e.id)) openId=null; renderLog(); save(); });
         tools.appendChild(del);
         li.appendChild(wrap); li.appendChild(tm); li.appendChild(ck); li.appendChild(tools); ul.appendChild(li);
       });
