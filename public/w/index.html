@@ -45,7 +45,7 @@
   .entry .trail .k{flex:0 0 auto;min-width:34px;color:var(--mute)}
   .entry .trail .k.reply{color:var(--fg);font-weight:600}
   .entry .trail .t{color:var(--fg);flex:1;min-width:0;overflow-wrap:anywhere}
-  @media (hover:none){ .row .del,.row .pinbtn,.head .del,.hero .swap,.align,.stack .del,.sheet td.addcol button{opacity:1} }
+  @media (hover:none){ .row .del,.row .pinbtn,.head .del,.col .head .clear,.hero .swap,.align,.stack .del,.sheet td.addcol button{opacity:1} }
   .entry .trail .when{margin-left:auto;font-variant-numeric:tabular-nums;white-space:nowrap}
   /* the box for a note or a reply, and the tools, only take up room on the request you clicked */
   .entry .add{display:none;gap:10px;align-items:baseline;margin-top:4px;font-size:12px}
@@ -200,8 +200,23 @@
   body.hasbg .bar{background:var(--bg);height:auto;box-sizing:content-box;margin:-22px calc(-1 * max(28px,env(safe-area-inset-right,0px))) 28px calc(-1 * max(28px,env(safe-area-inset-left,0px)));padding:22px calc(max(28px,env(safe-area-inset-right,0px)) + max(0px,(100% - 1200px) / 2)) 8px calc(max(28px,env(safe-area-inset-left,0px)) + max(0px,(100% - 1200px) / 2))}
   body.hasbg .bar .right{height:22px}
   .col{min-width:0}
-  .col .label{min-width:0;width:100%}
-  .log{list-style:none;margin:2px 0 0;padding:0;display:flex;flex-direction:column}
+  /* each section folds like a category on the board: chevron in the gutter, the list indented under the label */
+  .col .label{min-width:0;flex:0 1 auto}
+  .col .tog{transform:rotate(90deg);transform-origin:50% 45%}
+  .col.closed .tog{transform:none}
+  .col.closed .label{color:var(--mute)}
+  .col .count{font-size:13px;color:var(--mute);padding-top:2px;font-variant-numeric:tabular-nums}
+  .col .count:empty{display:none}
+  .col.closed .log{display:none}
+  /* clearing a whole section is a hover tool like the other × buttons; the undo sits above the saved note for a few seconds */
+  .col .head .clear{margin-left:auto;font-size:13px;color:var(--mute);opacity:0;padding-top:2px}
+  .col .head:hover .clear,.col .head:focus-within .clear{opacity:1}
+  .col .head .clear:hover{color:var(--fg);text-decoration:underline;text-underline-offset:3px}
+  .undo{position:fixed;left:max(28px,env(safe-area-inset-left,0px));bottom:calc(60px + env(safe-area-inset-bottom,0px));font-size:14px;color:var(--mute);display:flex;gap:10px;align-items:baseline}
+  .undo[hidden]{display:none}
+  .undo button{font-size:14px;color:var(--fg);text-decoration:underline;text-underline-offset:3px}
+  body.hasbg .undo{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+  .log{list-style:none;margin:2px 0 0 20px;padding:0;display:flex;flex-direction:column}
   /* a request with no thread is one line */
   .entry{display:grid;grid-template-columns:1fr auto auto;gap:0 10px;align-items:start;padding:5px 0;border-bottom:1px solid var(--hair)}
   .entry .text{font-weight:400;font-size:14px;min-width:0;overflow-wrap:anywhere;outline-offset:3px;padding:1px 0}
@@ -246,6 +261,20 @@
   </div>
 </div>
 
+<section id="locked" class="view">
+ <div class="board">
+  <div class="lockpad" id="lockPad">
+    <div class="say" id="lockSay">this workspace is locked</div>
+    <form class="line" id="lockForm">
+      <input type="password" id="lockPw" placeholder="password" autocomplete="current-password" spellcheck="false">
+      <button type="submit" id="lockGo">open</button>
+      <button type="button" id="lockCancel" hidden>cancel</button>
+    </form>
+    <div class="why" id="lockWhy"></div>
+  </div>
+ </div>
+</section>
+
 <section id="home" class="view on">
  <div class="board">
   <div class="hero" id="hero">
@@ -267,25 +296,17 @@
   <div class="stack" id="stack" hidden></div>
   <div class="bgimg" id="bgImg"></div><div class="frost"></div>
   <input type="file" id="imgFile" accept="image/*" hidden>
-  <div class="lockpad" id="lockPad" hidden>
-    <div class="say" id="lockSay">these requests are locked</div>
-    <form class="line" id="lockForm">
-      <input type="password" id="lockPw" placeholder="password" autocomplete="current-password" spellcheck="false">
-      <button type="submit" id="lockGo">open</button>
-    </form>
-    <div class="why" id="lockWhy"></div>
-  </div>
   <div class="cols" id="cols">
-    <div class="col">
-      <div class="label">pending</div>
+    <div class="col" data-col="pending">
+      <div class="head"><button class="tog" aria-label="show or hide pending">›</button><div class="label">pending</div><span class="count"></span></div>
       <ul class="log" id="pending"></ul>
     </div>
-    <div class="col">
-      <div class="label">approved</div>
+    <div class="col" data-col="approved">
+      <div class="head"><button class="tog" aria-label="show or hide approved">›</button><div class="label">approved</div><span class="count"></span><button class="clear" hidden>clear</button></div>
       <ul class="log" id="approved"></ul>
     </div>
-    <div class="col">
-      <div class="label">done</div>
+    <div class="col" data-col="done">
+      <div class="head"><button class="tog" aria-label="show or hide done">›</button><div class="label">done</div><span class="count"></span><button class="clear" hidden>clear</button></div>
       <ul class="log" id="done"></ul>
     </div>
   </div>
@@ -297,6 +318,7 @@
   <button id="plusBtn" aria-label="add">+</button>
 </div>
 <div class="saved" id="saved">saved</div>
+<div class="undo" id="undo" hidden><span></span><button>undo</button></div>
 <label class="frostctl">frost <input type="range" id="frostRange" min="0.2" max="1" step="0.02" value="0.7"></label>
 
 <script>
@@ -329,6 +351,8 @@ function app(){
 
   var saved=document.getElementById('saved'), savedT, saveT;
   function save(){
+    /* a browser without the password was sent nothing, so it has nothing to save back */
+    if(state.locked && !state.unlocked) return;
     clearTimeout(saveT);
     saveT=setTimeout(function(){
       fetch(API,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(state)}).then(function(r){
@@ -427,27 +451,32 @@ function app(){
     });
   }
 
-  /* the password on the requests. the page holds whether they are open, never the password itself */
+  /* the password on the workspace. the page holds whether it is open, never the password itself.
+     without it the site sends only the name, so there is nothing here to show until it is typed */
   var HASAPI=(typeof API!=='undefined');
-  var lockPad=document.getElementById('lockPad'), lockSay=document.getElementById('lockSay'), lockPw=document.getElementById('lockPw'),
-      lockGo=document.getElementById('lockGo'), lockWhy=document.getElementById('lockWhy'), lockForm=document.getElementById('lockForm'), lockMode='open';
-  function requestsOpen(){ return !state.locked || !!state.unlocked; }
-  function paintRequests(){
-    var onLog=(curView==='page' && current==='log');
-    if(!onLog) lockMode='open';
-    var ask=onLog && (!requestsOpen() || lockMode==='set');
-    lockPad.hidden=!ask; cols.hidden=!onLog || ask;
+  var lockSay=document.getElementById('lockSay'), lockPw=document.getElementById('lockPw'), lockGo=document.getElementById('lockGo'),
+      lockWhy=document.getElementById('lockWhy'), lockForm=document.getElementById('lockForm'), lockCancel=document.getElementById('lockCancel'), lockMode='open';
+  function lockedOut(){ return !!state.locked && !state.unlocked; }
+  function paintRequests(){ cols.hidden=!(curView==='page' && current==='log'); }
+  /* the locked view stands in for the board while the password is missing, or while one is being set */
+  function paintLock(){
+    var ask=lockedOut() || lockMode==='set';
+    document.getElementById('locked').classList.toggle('on',ask);
+    document.getElementById('home').classList.toggle('on',!ask && curView==='home');
+    document.getElementById('page').classList.toggle('on',!ask && curView==='page');
+    placeBar();
     if(!ask) return;
-    lockSay.textContent=lockMode==='set'?'set a password for these requests':'these requests are locked';
+    lockSay.textContent=lockMode==='set'?'set a password for this workspace':'this workspace is locked';
     lockGo.textContent=lockMode==='set'?'set':'open';
+    lockCancel.hidden=lockMode!=='set';
     lockPw.setAttribute('autocomplete',lockMode==='set'?'new-password':'current-password');
     lockPw.value=''; lockWhy.textContent='';
     setTimeout(function(){ lockPw.focus(); },0);
   }
-  /* read the workspace again, which is what tells us whether the requests are open now */
+  /* read the workspace again, which is what tells us whether it is open now */
   function reload(){
     return fetch(API,{cache:'no-store'}).then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); }).then(function(doc){
-      state=doc; window.__state=doc; tidy(); renderLog(); paintRequests(); buildMenu(curView);
+      state=doc; window.__state=doc; tidy(); paintName(); show();
     });
   }
   lockForm.addEventListener('submit',function(ev){
@@ -460,6 +489,7 @@ function app(){
       .then(function(res){ if(!res.ok){ lockWhy.textContent=res.j.error||'that did not work'; lockPw.select(); return; } lockMode='open'; return reload(); })
       .catch(function(){ lockWhy.textContent='could not reach the site'; });
   });
+  lockCancel.addEventListener('click',function(){ lockMode='open'; paintLock(); buildMenu(curView); });
   function removeLock(){
     fetch(API+'/lock',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({remove:true})})
       .then(function(r){ return r.json(); }).then(function(j){ if(j.ok){ lockMode='open'; reload(); } }).catch(function(){});
@@ -480,11 +510,43 @@ function app(){
   var openId=null;
   function paintOpen(){ var all=document.querySelectorAll('#cols .entry'); for(var i=0;i<all.length;i++){ all[i].classList.toggle('on', openId!==null && all[i].dataset.id===String(openId)); } }
   document.addEventListener('click',function(ev){ var el=ev.target; if(openId===null || !el.closest || el.closest('.entry') || el.closest('.plus')) return; openId=null; paintOpen(); });
+  /* clearing a section takes every request in it; the undo stays up for eight seconds */
+  var undoEl=document.getElementById('undo'), undoT, undoFn=null;
+  function offerUndo(text,fn){
+    undoEl.querySelector('span').textContent=text; undoFn=fn; undoEl.hidden=false;
+    clearTimeout(undoT); undoT=setTimeout(function(){ undoEl.hidden=true; undoFn=null; },8000);
+  }
+  undoEl.querySelector('button').addEventListener('click',function(){ var f=undoFn; undoEl.hidden=true; undoFn=null; clearTimeout(undoT); if(f) f(); });
+  document.querySelectorAll('#cols .col .clear').forEach(function(c){
+    c.addEventListener('click',function(){
+      var col=c.closest('.col').dataset.col;
+      var gone=state.entries.filter(function(e){ return e.col===col && e.page===current; });
+      if(!gone.length) return;
+      state.entries=state.entries.filter(function(e){ return !(e.col===col && e.page===current); });
+      openId=null; renderLog(); save();
+      offerUndo('cleared '+gone.length+' '+col,function(){ state.entries=gone.concat(state.entries); renderLog(); save(); });
+    });
+  });
+  /* a section folds shut from its chevron; which ones are shut is kept on the page, so it holds across devices like a closed category */
+  document.querySelectorAll('#cols .col .tog').forEach(function(t){
+    t.addEventListener('click',function(){
+      var pg=findPage(current); if(!pg) return;
+      var col=t.closest('.col').dataset.col; pg.fold=pg.fold||{};
+      if(pg.fold[col]) delete pg.fold[col]; else pg.fold[col]=true;
+      if(!Object.keys(pg.fold).length) delete pg.fold;
+      renderLog(); save();
+    });
+  });
   function renderLog(){
     var pg=findPage(current); document.getElementById('pageName').textContent=pg?pg.name:'';
+    var fold=(pg&&pg.fold)||{};
     ['pending','approved','done'].forEach(function(col){
       var ul=document.getElementById(col); ul.innerHTML='';
       var rows=state.entries.filter(function(e){return e.col===col && e.page===current});
+      var colEl=ul.parentNode, shut=!!fold[col];
+      colEl.classList.toggle('closed',shut);
+      colEl.querySelector('.count').textContent=(shut&&rows.length)?String(rows.length):'';
+      var clr=colEl.querySelector('.clear'); if(clr) clr.hidden=!rows.length;
       if(!rows.length) return;
       rows.forEach(function(e){
         var li=document.createElement('li'); li.className='entry'+(openId!==null && String(openId)===String(e.id)?' on':''); li.dataset.id=e.id;
@@ -532,7 +594,8 @@ function app(){
 
   /* artist name, top right on sub-pages, centered on home, or a logo */
   var barLogo=document.getElementById('barLogo'), curView='home';
-  function placeBar(){ artist.classList.toggle('off', curView==='home'); }
+  /* the name sits in the bar except on the board, where it is the heading; the locked view has no heading, so it goes back in the bar there */
+  function placeBar(){ artist.classList.toggle('off', curView==='home' && !lockedOut() && lockMode!=='set'); }
   var artist=document.getElementById('artist'), heroName=document.getElementById('heroName'), logo=document.getElementById('logo'), swapBtn=document.getElementById('swapBtn'), logoFile=document.getElementById('logoFile');
   var MAX=50;
   function paintName(){
@@ -562,12 +625,12 @@ function app(){
          ['image',function(){ imgTarget='stack'; imgFile.click(); }],
 
          (findPage(current)&&findPage(current).bg)?['remove background',function(){ var pg=findPage(current); delete pg.bg; renderImages(); buildMenu('page'); save(); }]:['background',function(){ imgTarget='bg'; imgFile.click(); }]];
-    /* nothing can be added to the requests while they are locked */
-    if(view==='page' && current==='log' && !requestsOpen()) items=[];
-    if(HASAPI && view==='page' && current==='log' && requestsOpen()){
-      if(!state.locked) items.push(['lock these requests',function(){ lockMode='set'; paintRequests(); }]);
+    /* the password is set and removed from the board. nothing can be added while the workspace is locked */
+    if(HASAPI && view==='home'){
+      if(!state.locked) items.push(['lock this workspace',function(){ lockMode='set'; paintLock(); buildMenu(curView); }]);
       else items.push(['remove the password',removeLock]);
     }
+    if(lockedOut() || lockMode==='set') items=[];
     items=items.filter(Boolean);
     items.forEach(function(it){ var b=document.createElement('button'); b.textContent=it[0]; b.addEventListener('click',function(){ menu.classList.remove('open'); it[1](); }); menu.appendChild(b); });
     document.querySelector('.plus').style.display=items.length?'flex':'none';
@@ -688,8 +751,9 @@ function app(){
     if(h==='requests') h='log';
     var view='home'; if(h!=='home' && findPage(h)){ view='page'; current=h; }
     document.querySelectorAll('.view').forEach(function(v){ v.classList.toggle('on',v.id===view); });
-    curView=view; placeBar(); if(view==='home') renderImages();
-    paintRequests(); buildMenu(view); menu.classList.remove('open');
+    curView=view; lockMode='open'; placeBar(); if(view==='home') renderImages();
+    paintRequests(); paintLock(); buildMenu(view); menu.classList.remove('open');
+    if(lockedOut()){ window.scrollTo(0,0); return; }
     if(view==='home') renderHome();
     else if(current==='log'){ docBody.hidden=true; renderLog(); renderSheet(); renderImages(); paintAlign(); paintBelow(); }
     else {

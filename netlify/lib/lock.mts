@@ -1,12 +1,14 @@
-// The password on a workspace's requests. Shared by api.mts (which hides the requests
-// without it) and lock.mts (which sets it and checks it).
+// The password on a workspace. Shared by api.mts (which sends nothing but the name
+// without it), reply.mts (which will not text without it) and lock.mts (which sets it
+// and checks it).
 //
 // The password itself is never stored. What is stored is a PBKDF2 hash of it and the salt
 // that made the hash, and neither ever leaves the server. Proof of the password is a token
 // in a cookie, signed with the hash, so changing the password makes old tokens useless.
+// A browser stays open for thirty days, so a phone that checks in daily is not asked again.
 
 const ITERATIONS = 120000;
-const TOKEN_HOURS = 12;
+const TOKEN_HOURS = 30 * 24;
 
 export type Lock = { salt: string; hash: string };
 

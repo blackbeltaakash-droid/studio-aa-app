@@ -29,6 +29,8 @@ script=script.replace("""    state.entries=state.entries.filter(function(e){ ret
 old_save=script[script.index("  var saved=document.getElementById('saved'), savedT;"):script.index("  function now(){")]
 script=script.replace(old_save,"""  var saved=document.getElementById('saved'), savedT, saveT;
   function save(){
+    /* a browser without the password was sent nothing, so it has nothing to save back */
+    if(state.locked && !state.unlocked) return;
     clearTimeout(saveT);
     saveT=setTimeout(function(){
       fetch(API,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(state)}).then(function(r){

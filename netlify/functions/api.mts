@@ -5,8 +5,9 @@ import { tokenValid, cookieFrom, type Lock } from "../lib/lock.mts";
 // One JSON document per workspace. GET returns it after folding any texts
 // waiting in the inbox into the live log. PUT replaces it with what the page sends.
 //
-// When the workspace has a password on its requests, a browser without it is never
-// sent the requests and cannot change them. The rest of the workspace still works.
+// When the workspace has a password, a browser without it is sent only the name and
+// the fact that it is locked, and cannot save anything. Texts still arrive in the inbox
+// meanwhile, since the webhook does not go through the browser.
 
 const STORE = "workspaces";
 
@@ -69,12 +70,14 @@ export default async (req: Request, context: Context) => {
   const hidden = !!lock && !(await tokenValid(lock, slug, cookieFrom(req, slug)));
 
   if (req.method === "GET") {
+    const headers = { "cache-control": "no-store" };
+    // an empty but well formed workspace, so the page can draw the lock screen with the name on it
+    if (hidden) return Response.json({ artist: stored.artist, buckets: [], entries: [], next: 0, locked: true, unlocked: false }, { headers });
     const { lock: _never, ...rest } = stored;
-    const out = { ...rest, locked: !!lock, unlocked: !!lock && !hidden };
-    if (hidden) out.entries = stored.entries.filter((e) => e.page !== REQUESTS);
-    return Response.json(out, { headers: { "cache-control": "no-store" } });
+    return Response.json({ ...rest, locked: !!lock, unlocked: !!lock }, { headers });
   }
   if (req.method === "PUT") {
+    if (hidden) return Response.json({ ok: false, error: "this workspace is locked" }, { status: 403 });
     let doc: Doc & { locked?: boolean; unlocked?: boolean };
     try { doc = await req.json(); } catch { return new Response("bad json", { status: 400 }); }
     if (!doc || !Array.isArray(doc.buckets) || !Array.isArray(doc.entries)) return new Response("bad doc", { status: 400 });
@@ -82,8 +85,6 @@ export default async (req: Request, context: Context) => {
     delete doc.unlocked;
     // the password is only ever changed through /lock, never by saving the page
     if (lock) doc.lock = lock; else delete doc.lock;
-    // a browser without the password never had the requests, so it cannot overwrite them
-    if (hidden) doc.entries = [...stored.entries.filter((e) => e.page === REQUESTS), ...doc.entries.filter((e) => e.page !== REQUESTS)];
     await store.setJSON(`ws/${slug}`, doc);
     return Response.json({ ok: true });
   }

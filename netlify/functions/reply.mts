@@ -1,12 +1,18 @@
 import type { Config, Context } from "@netlify/functions";
+import { getStore } from "@netlify/blobs";
+import { tokenValid, cookieFrom, type Lock } from "../lib/lock.mts";
 
 // Sends a text back to the person who made a request, from the Studio Aa number.
 // Needs TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and TWILIO_FROM in the project's environment.
+// When the workspace has a password, only a browser that has opened it can send.
 
 export default async (req: Request, context: Context) => {
   if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
   const slug = (context.params.slug || "").trim();
   if (!/^[a-z0-9-]{6,64}$/i.test(slug)) return new Response("not found", { status: 404 });
+
+  const doc = (await getStore({ name: "workspaces", consistency: "strong" }).get(`ws/${slug}`, { type: "json" })) as { lock?: Lock } | null;
+  if (doc?.lock && !(await tokenValid(doc.lock, slug, cookieFrom(req, slug)))) return Response.json({ ok: false, error: "this workspace is locked" }, { status: 403 });
 
   let body: { to?: string; text?: string };
   try { body = await req.json(); } catch { return Response.json({ ok: false, error: "bad json" }, { status: 400 }); }
