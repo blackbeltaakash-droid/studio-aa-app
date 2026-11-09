@@ -454,10 +454,6 @@
       .catch(function(){ lockWhy.textContent='could not reach the site'; });
   });
   lockCancel.addEventListener('click',function(){ lockMode='open'; paintLock(); buildMenu(curView); });
-  function removeLock(){
-    fetch(API+'/lock',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({remove:true})})
-      .then(function(r){ return r.json(); }).then(function(j){ if(j.ok){ lockMode='open'; reload(); } }).catch(function(){});
-  }
 
   /* subpage */
   function stamp(e,kind,text){ (e.trail=e.trail||[]).push({k:kind,t:text,when:now()}); }
@@ -589,11 +585,8 @@
          ['image',function(){ imgTarget='stack'; imgFile.click(); }],
 
          (findPage(current)&&findPage(current).bg)?['remove background',function(){ var pg=findPage(current); delete pg.bg; renderImages(); buildMenu('page'); save(); }]:['background',function(){ imgTarget='bg'; imgFile.click(); }]];
-    /* the password is set and removed from the board. nothing can be added while the workspace is locked */
-    if(HASAPI && view==='home'){
-      if(!state.locked) items.push(['lock this workspace',function(){ lockMode='set'; paintLock(); buildMenu(curView); }]);
-      else items.push(['remove the password',removeLock]);
-    }
+    /* the password is set from the board, once. the page offers no way to take it off, so anyone it is shared with cannot either */
+    if(HASAPI && view==='home' && !state.locked) items.push(['lock this workspace',function(){ lockMode='set'; paintLock(); buildMenu(curView); }]);
     if(lockedOut() || lockMode==='set') items=[];
     items=items.filter(Boolean);
     items.forEach(function(it){ var b=document.createElement('button'); b.textContent=it[0]; b.addEventListener('click',function(){ menu.classList.remove('open'); it[1](); }); menu.appendChild(b); });
