@@ -9,11 +9,15 @@
 <style>
   /* layout: the studio Aa whiteboard, left aligned, one column of hairline-labelled lists; the artist name replaces the studio name as the page header */
   :root{
-    --bg:#ffffff; --fg:#111111; --mute:#8a8a8a; --rule:#111111; --hair:#e6e6e6; --hover:#f4f4f4;
+    --bg:#ffffff; --fg:#111111; --mute:#8a8a8a; --rule:#111111; --hair:#e6e6e6; --hover:#f4f4f4; --gridline:rgba(0,0,0,.045);
     --font:"Inter",-apple-system,"Helvetica Neue",Arial,sans-serif;
   }
-  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --bg:#0f0f0f; --fg:#f2f2f2; --mute:#8a8a8a; --rule:#f2f2f2; --hair:#262626; --hover:#1a1a1a; color-scheme:dark } }
-  :root[data-theme="dark"]{ --bg:#0f0f0f; --fg:#f2f2f2; --mute:#8a8a8a; --rule:#f2f2f2; --hair:#262626; --hover:#1a1a1a; color-scheme:dark }
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --bg:#0f0f0f; --fg:#f2f2f2; --mute:#8a8a8a; --rule:#f2f2f2; --hair:#262626; --hover:#1a1a1a; --gridline:rgba(255,255,255,.04); color-scheme:dark } }
+  :root[data-theme="dark"]{ --bg:#0f0f0f; --fg:#f2f2f2; --mute:#8a8a8a; --rule:#f2f2f2; --hair:#262626; --hover:#1a1a1a; --gridline:rgba(255,255,255,.04); color-scheme:dark }
+  /* a workspace can carry its own theme: dark or light whatever the device says, its own greys, a faint pixel grid,
+     and a run of colours that tints the name and the rule under each category. set on the workspace, not from the page */
+  body.grid{background-image:linear-gradient(var(--gridline) 1px,transparent 1px),linear-gradient(90deg,var(--gridline) 1px,transparent 1px);background-size:14px 14px}
+  .tinted{background:var(--tint);-webkit-background-clip:text;background-clip:text;color:transparent;caret-color:var(--fg)}
 
   *{box-sizing:border-box}
   body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.3;margin:0;
@@ -141,7 +145,7 @@
   .row .del:hover,.head .del:hover{color:var(--fg)}
   .head{display:flex;align-items:flex-start;gap:8px}
   .head .del{padding:2px 0 0}
-  @media (max-width:600px){ .board{padding:20px 18px 28px;min-height:0} }
+  @media (max-width:600px){ .board{padding:20px 16px 28px;min-height:0} }
 
   /* the password on the requests */
   .lockpad{max-width:340px;margin:2px 0 0}
@@ -237,6 +241,26 @@
   .entry.on .tools{display:flex}
   .entry .tools button:hover{color:var(--fg);text-decoration:underline;text-underline-offset:3px}
   .empty{color:var(--mute);font-size:14px;padding:14px 0}
+  @media (max-width:600px){
+    /* a phone gets a tighter gutter so the column of text is most of the screen */
+    body{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+    body.hasbg .bar{margin-left:calc(-1 * max(16px,env(safe-area-inset-left,0px)));margin-right:calc(-1 * max(16px,env(safe-area-inset-right,0px)));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+    .plus{right:max(16px,env(safe-area-inset-right,0px))}
+    .saved,.undo{left:max(16px,env(safe-area-inset-left,0px))}
+    /* a request reads as a paragraph: the time and the check sit to the right of its first line and the text runs under them at full width,
+       and each line of the thread runs on as one line of text with its time at the end, instead of three narrow columns */
+    .entry{display:block}
+    .entry > .check{float:right;margin:3px 0 0 10px}
+    .entry > .time{float:right;margin:0 0 0 10px;padding-top:4px}
+    .entry > .wrap{min-width:0}
+    .entry .tools{display:none;clear:both;justify-content:flex-end;padding-top:4px}
+    .entry.on .tools{display:flex}
+    .entry .trail{display:block}
+    .entry .trail div{display:block;line-height:1.4;margin-top:2px}
+    .entry .trail .k{display:inline;min-width:0;margin-right:6px}
+    .entry .trail .t{display:inline}
+    .entry .trail .when{display:inline;margin-left:6px;white-space:nowrap}
+  }
 
   .plus{position:fixed;right:max(28px,env(safe-area-inset-right,0px));bottom:calc(28px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:flex-end;gap:10px}
   .plus > button{width:56px;height:56px;border:1.5px solid var(--fg);border-radius:50%;font-size:32px;font-weight:400;line-height:1;background:var(--bg);display:flex;align-items:center;justify-content:center;padding-bottom:3px}
@@ -416,6 +440,7 @@ function app(){
       var tog=document.createElement('button'); tog.className='tog'; tog.textContent='›'; tog.setAttribute('aria-label','show or hide sub-pages');
       tog.addEventListener('click',function(){ b.closed=!b.closed; div.classList.toggle('closed',!!b.closed); save(); });
       var inner=document.createElement('div'); inner.className='inner'; inner.appendChild(lab);
+      if(tints.length) inner.style.borderBottomColor=tints[bi%tints.length];
       head.appendChild(tog); head.appendChild(inner);
       var bdel=document.createElement('button'); bdel.className='del'; bdel.textContent='×'; bdel.setAttribute('aria-label','remove category');
       bdel.addEventListener('click',function(){ state.buckets.splice(bi,1); renderHome(); save(); });
@@ -583,7 +608,8 @@ function app(){
         var del=document.createElement('button'); del.textContent='×'; del.setAttribute('aria-label','remove');
         del.addEventListener('click',function(ev){ if(!oneClick(ev)) return; state.entries=state.entries.filter(function(x){return x.id!==e.id}); if(String(openId)===String(e.id)) openId=null; renderLog(); save(); });
         tools.appendChild(del);
-        li.appendChild(wrap); li.appendChild(tm); li.appendChild(ck); li.appendChild(tools); ul.appendChild(li);
+        /* time and check come first in the markup so a phone can float them to the right of the first line; on a wide screen the grid places them regardless of order */
+        li.appendChild(ck); li.appendChild(tm); li.appendChild(wrap); li.appendChild(tools); ul.appendChild(li);
       });
     });
   }
@@ -609,6 +635,18 @@ function app(){
   swapBtn.addEventListener('click',function(){ if(state.logo){ delete state.logo; paintName(); save(); } else { logoFile.click(); } });
   logoFile.addEventListener('change',function(){ var f=logoFile.files[0]; if(!f) return; var rd=new FileReader(); rd.onload=function(){ state.logo=rd.result; paintName(); save(); }; rd.readAsDataURL(f); logoFile.value=''; });
   paintName();
+
+  /* the workspace theme. colours are checked before they go anywhere near a style */
+  var tints=[];
+  function applyTheme(){
+    var th=state.theme||{}, root=document.documentElement;
+    if(th.mode==='dark'||th.mode==='light') root.dataset.theme=th.mode; else delete root.dataset.theme;
+    ['bg','fg','mute','rule','hair','hover'].forEach(function(k){ var v=th.tokens&&th.tokens[k]; if(v&&/^#[0-9a-f]{3,8}$/i.test(v)) root.style.setProperty('--'+k,v); else root.style.removeProperty('--'+k); });
+    document.body.classList.toggle('grid',!!th.grid);
+    tints=(Array.isArray(th.colors)?th.colors:[]).filter(function(c){ return /^#[0-9a-f]{3,8}$/i.test(c); });
+    root.style.setProperty('--tint',tints.length>1?('linear-gradient(90deg,'+tints.join(',')+')'):(tints[0]||'none'));
+    [heroName,artist].forEach(function(el){ el.classList.toggle('tinted',tints.length>0); });
+  }
 
   /* plus */
   var menu=document.getElementById('menu'), plus=document.getElementById('plusBtn');
@@ -740,6 +778,7 @@ function app(){
 
   /* routing */
   function show(){
+    applyTheme();
     var h=(location.hash||'#home').slice(1);
     if(h==='requests') h='log';
     var view='home'; if(h!=='home' && findPage(h)){ view='page'; current=h; }

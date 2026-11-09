@@ -14,7 +14,7 @@ const STORE = "workspaces";
 type Line = { k: string; t: string; when: string; id?: string };
 type Entry = { id: string | number; col: "pending" | "approved" | "done"; page: string; text: string; orig: string; time: string; from?: string; at?: string; images?: string[]; trail?: Line[] };
 type Inbox = { kind?: "reply"; entry?: string; text: string; from: string; sid: string; at: string; media?: { key: string; type: string }[] };
-type Doc = { artist: string; logo?: string; buckets: any[]; entries: Entry[]; next: number; lock?: Lock };
+type Doc = { artist: string; logo?: string; theme?: unknown; buckets: any[]; entries: Entry[]; next: number; lock?: Lock };
 
 const REQUESTS = "log";
 
@@ -72,7 +72,7 @@ export default async (req: Request, context: Context) => {
   if (req.method === "GET") {
     const headers = { "cache-control": "no-store" };
     // an empty but well formed workspace, so the page can draw the lock screen with the name on it
-    if (hidden) return Response.json({ artist: stored.artist, buckets: [], entries: [], next: 0, locked: true, unlocked: false }, { headers });
+    if (hidden) return Response.json({ artist: stored.artist, theme: stored.theme, buckets: [], entries: [], next: 0, locked: true, unlocked: false }, { headers });
     const { lock: _never, ...rest } = stored;
     return Response.json({ ...rest, locked: !!lock, unlocked: !!lock }, { headers });
   }
