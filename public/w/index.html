@@ -322,9 +322,13 @@ function app(){
   /* pick up new texts every 20 seconds */
   function poll(){
     fetch(API,{cache:'no-store'}).then(function(r){return r.json()}).then(function(remote){
-      var have={}; state.entries.forEach(function(e){ have[String(e.id)]=1; });
+      var have={}; state.entries.forEach(function(e){ have[String(e.id)]=e; });
       var fresh=remote.entries.filter(function(e){ return String(e.id).charAt(0)==='s' && !have[String(e.id)]; });
-      if(fresh.length){ state.entries=fresh.concat(state.entries); if(current==='log' && document.getElementById('page').classList.contains('on')) renderLog(); save(); }
+      /* a reply you sent by text arrives as a new line on a request that is already here */
+      var lines=false;
+      remote.entries.forEach(function(r){ var l=have[String(r.id)]; if(!l||!r.trail) return; var seen={}; (l.trail||[]).forEach(function(x){ if(x.id) seen[x.id]=1; });
+        r.trail.forEach(function(x){ if(x.id && !seen[x.id]){ (l.trail=l.trail||[]).push(x); lines=true; } }); });
+      if(fresh.length||lines){ state.entries=fresh.concat(state.entries); if(current==='log' && document.getElementById('page').classList.contains('on')) renderLog(); save(); }
     }).catch(function(){});
   }
   setInterval(poll,20000);

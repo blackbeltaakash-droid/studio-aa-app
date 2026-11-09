@@ -6,7 +6,9 @@ import { getStore } from "@netlify/blobs";
 
 const STORE = "workspaces";
 
-type Entry = { id: string | number; col: "pending" | "approved"; page: string; text: string; orig: string; time: string; from?: string; at?: string; images?: string[] };
+type Line = { k: string; t: string; when: string; id?: string };
+type Entry = { id: string | number; col: "pending" | "approved" | "done"; page: string; text: string; orig: string; time: string; from?: string; at?: string; images?: string[]; trail?: Line[] };
+type Inbox = { kind?: "reply"; entry?: string; text: string; from: string; sid: string; at: string; media?: { key: string; type: string }[] };
 type Doc = { artist: string; logo?: string; buckets: any[]; entries: Entry[]; next: number };
 
 function fresh(slug: string): Doc {
@@ -34,8 +36,13 @@ async function load(slug: string): Promise<Doc> {
     const keys = blobs.map((b) => b.key).sort();
     const have = new Set(doc.entries.map((e) => String(e.id)));
     for (const key of keys) {
-      const m = (await store.get(key, { type: "json" })) as { text: string; from: string; sid: string; at: string; media?: { key: string; type: string }[] } | null;
-      if (m && !have.has("s" + m.sid)) {
+      const m = (await store.get(key, { type: "json" })) as Inbox | null;
+      if (m && m.kind === "reply") {
+        // a reply sent by text from the alert phone: a line under the request it answers
+        const e = doc.entries.find((x) => String(x.id) === m.entry);
+        const id = "r" + m.sid;
+        if (e && !(e.trail || []).some((x) => x.id === id)) (e.trail = e.trail || []).push({ k: "reply", t: m.text, when: stamp(m.at), id });
+      } else if (m && !have.has("s" + m.sid)) {
         const images = (m.media || []).map((x) => "/media/" + x.key.replace(/^media\//, ""));
         doc.entries.unshift({ id: "s" + m.sid, col: "pending", page: "log", text: m.text || (images.length ? "picture" : ""), orig: "", time: stamp(m.at), from: m.from, at: m.at, images });
       }
