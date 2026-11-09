@@ -139,6 +139,8 @@
   @media (max-width:600px){ .board{padding:20px 18px 28px;min-height:0} }
 
   .cols{display:flex;flex-direction:column;gap:30px;max-width:640px}
+  /* the columns belong to the live log only; display:flex above would otherwise override the hidden attribute on every other sub-page */
+  .cols[hidden]{display:none}
   .doc{max-width:640px;min-height:30vh;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
   .doc.short{min-height:1.5em}
   .doc.below{min-height:40vh;margin-top:18px}
